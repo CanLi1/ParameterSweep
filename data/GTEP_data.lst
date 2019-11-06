@@ -1,0 +1,1187 @@
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+   1  * Generation and Transmission Expansion model for ERCOT region
+   2  * Author: C.L. Lara and I.E. Grossmann
+   3  * Last revision: 05/17/2016
+   4   
+   5  ********************************************************************************
+   6  ************************************ Data **************************************
+   7  ********************************************************************************
+   8   
+   9  *Select between hourly, half-hourly and quarter-hourly information
+INCLUDE    /home/canl1/work/GETP/data/GTEP_hourly.gms
+  11  * Generation and Transmission Expansion model for ERCOT region
+  12  * Author: C.L. Lara and I.E. Grossmann
+  13  * Last revision: 05/17/2016
+  14   
+  15  ********************************************************************************
+  16  **************************** HOURLY LEVEL PROBLEM ******************************
+  17  ********************************************************************************
+  18   
+  19  SETS     i         generation clusters     /coal-st-old1, ng-ct-old, ng-cc-old, ng-st-old,
+  20                                              nuc-st-old, pv-old, wind-old, nuc-st-new, wind-new, pv-new, csp-new
+  21                                              coal-igcc-new, coal-igcc-ccs-new, ng-cc-new, ng-cc-ccs-new, ng-ct-new/
+  22           th(i)     thermal clusters        /nuc-st-old, nuc-st-new, coal-st-old1,  coal-igcc-new,
+  23                                              coal-igcc-ccs-new, ng-ct-old, ng-cc-old, ng-st-old, ng-cc-new,
+  24                                              ng-cc-ccs-new, ng-ct-new/
+  25           rn(i)     renewable clusters      /pv-old, pv-new, csp-new, wind-old, wind-new/
+  26   
+  27           co(th)     coal clusters           /coal-st-old1, coal-igcc-new, coal-igcc-ccs-new/
+  28           ng(th)     NG clusters             /ng-ct-old, ng-cc-old, ng-st-old, ng-cc-new, ng-cc-ccs-new, ng-ct-new/
+  29           nu(th)     nuclear clusters        /nuc-st-old, nuc-st-new/
+  30           PV(rn)     solar PV clusters       /pv-old, pv-new/
+  31           CSP(rn)    solar CSP clusters      /csp-new/
+  32           wi(rn)     wind clusters           /wind-old, wind-new/
+  33   
+  34           old(i)    existing clusters       /coal-st-old1, ng-ct-old, ng-cc-old, ng-st-old,
+  35                                              nuc-st-old, pv-old, wind-old/
+  36           new(i)    potential clusters      /nuc-st-new, wind-new, pv-new, csp-new, coal-igcc-new, coal-igcc-ccs-new,
+  37                                              ng-cc-new, ng-cc-ccs-new, ng-ct-new/
+  38           rold(old) rn existing clusters   /pv-old, wind-old/
+  39           rnew(new) rn potential clusters  /wind-new, pv-new, csp-new/
+  40   
+  41           told(old) th existing clusters   /nuc-st-old, coal-st-old1, ng-ct-old, ng-cc-old, ng-st-old/
+  42           tnew(new) th potential clusters  /nuc-st-new, coal-igcc-new,coal-igcc-ccs-new, ng-cc-new,ng-cc-ccs-new, ng-ct-new/
+  43  ;
+  44  display i, th, rn, co, ng, nu, PV, CSP, wi, old, new, rold, rnew, told, tnew;
+  45   
+  46  ALIAS (i,ii);
+  47   
+  48  SETS
+  49           t       time periods (years)    /1*3/
+  50           ss      season                  /spring, summer, fall, winter/
+  51           s       subperiods
+  52  ;
+  53  display t, ss;
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+  54  SET      r       load node (ERCOT regions)   /Northeast, West, Coastal, South, Panhandle/
+  55   
+  56  ALIAS (t,tt,ttt)
+  57        (s,s_)
+  58        (r,r_);
+  59   
+  60  ********************************************************************************
+  61  *************************** Load-related data ***********************************
+  62  ********************************************************************************
+  63   
+  64  PARAMETER        L_NE(s,ss)          load demand in Northeast region for subperiod s in season ss in the 1st year of the time horizon(MW)
+  65                   L_W(s,ss)           load demand in West region for subperiod s in season ss of the 1st year in the time horizon(MW)
+  66                   L_C(s,ss)           load demand in Coastal region for subperiod s in season ss of the 1st year in the time horizon(MW)
+  67                   L_S(s,ss)           load demand in South region for subperiod s in season ss of the 1st year in the time horizon(MW)
+  68                   L_PH(s,ss)          load demand in Panhandle region for subperiod s in season ss of the 1st year in the time horizon(MW)
+  69  ;
+  70   
+  79   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+  80  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE     70 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+  81  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE     71 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  82  $LOAD    s
+****      $502
+**** LINE     72 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  83  $LOADDC  L_NE, L_W, L_C, L_S, L_PH
+****        $502
+**** LINE     73 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  85   
+  86  PARAMETER L_growth       load annual growth rate         /0.014/;
+  87   
+  88  PARAMETER L(r,t,ss,s)      load demand per region for subperiod s in season ss of year t(MW);
+  89  L('Northeast',t,ss,s)=L_NE(s,ss)*(1+(ORD(t)-1)*L_growth);
+****                     $352  $141,352
+**** LINE     79 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  90  L('West',t,ss,s)=L_W(s,ss)*(1+(ORD(t)-1)*L_growth);
+****                $352 $141,352
+**** LINE     80 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  91  L('Coastal',t,ss,s)=L_C(s,ss)*(1+(ORD(t)-1)*L_growth);
+****                   $352 $141,352
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE     81 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  92  L('South',t,ss,s)=L_S(s,ss)*(1+(ORD(t)-1)*L_growth);
+****                 $352 $141,352
+**** LINE     82 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  93  L('Panhandle',t,ss,s)=L_PH(s,ss)*(1+(ORD(t)-1)*L_growth);
+****                     $352  $141,352
+**** LINE     83 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  94   
+  95  DISPLAY s;
+****          $141
+**** LINE     85 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+  96  DISPLAY L;
+  97   
+  98  PARAMETER        n_ss(ss)        days per season
+  99  /spring  128.142857142857
+ 100   summer  77
+ 101   fall    97
+ 102   winter  62.8571428571429/
+ 103  ;
+ 104  display n_ss;
+ 105  PARAMETER total_n;
+ 106  total_n=sum(ss, n_ss(ss));
+ 107  DISPLAY total_n;
+ 108   
+ 109  PARAMETER load_year_1;
+ 110  load_year_1 = sum((r,ss),sum(s,L(r,'1',ss,s)*n_ss(ss)));
+ 111  DISPLAY load_year_1;
+ 112   
+ 113  SCALAR    hs     duration of the subperiod s of year y (hr) /1/;
+ 114  display hs;
+ 115   
+ 116  PARAMETER        L_max(t)          peak load in year t (MW);
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=L_max rng=PeakLoad!A2:B31   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 117  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=L_max rng=PeakLoad!A2:B31   rdim=1
+****                                                                              $330
+**** LINE    107 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 118  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    108 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 119  $LOADDC L_max
+****        $502
+**** LINE    109 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 121   
+ 122  Display L_max;
+****              $141
+**** LINE    112 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 123   
+ 124  ********************************************************************************
+ 125  *************************** Capacity factor of RES *****************************
+ 126  ********************************************************************************
+ 127   
+ 128  PARAMETER cf(i,r,t,ss,s)   capacity factor
+ 129   
+ 130            cf_csp_NE(s,ss)   capacity factor of solar CSP clusters in Northeast region
+ 131            cf_pvsat_NE(s,ss) capacity factor of solar PVSAT clusters in Northeast region
+ 132            cf_windold_NE(s,ss)  capacity factor of old wind clusters in Northeast region
+ 133            cf_windnew_NE(s,ss)  capacity factor of new wind clusters in Northeast region
+ 134   
+ 135            cf_csp_W(s,ss)   capacity factor of solar CSP clusters in West region
+ 136            cf_pvsat_W(s,ss) capacity factor of solar PVSAT clusters in West region
+ 137            cf_windold_W(s,ss)  capacity factor of old wind clusters in West region
+ 138            cf_windnew_W(s,ss)  capacity factor of new wind clusters in West region
+ 139   
+ 140            cf_csp_C(s,ss)   capacity factor of solar CSP clusters in Coastal region
+ 141            cf_pvsat_C(s,ss) capacity factor of solar PVSAT clusters in Coastal region
+ 142            cf_windold_C(s,ss)  capacity factor of old wind clusters in Coastal region
+ 143            cf_windnew_C(s,ss)  capacity factor of new wind clusters in Coastal region
+ 144   
+ 145            cf_csp_S(s,ss)   capacity factor of solar CSP clusters in South region
+ 146            cf_pvsat_S(s,ss) capacity factor of solar PVSAT clusters in South region
+ 147            cf_windold_S(s,ss)  capacity factor of old wind clusters in South region
+ 148            cf_windnew_S(s,ss)  capacity factor of new wind clusters in South region
+ 149   
+ 150            cf_csp_PH(s,ss)   capacity factor of solar CSP clusters in Panhandle region
+ 151            cf_pvsat_PH(s,ss) capacity factor of solar PVSAT clusters in Panhandle region
+ 152            cf_windold_PH(s,ss)  capacity factor of old wind clusters in Panhandle region
+ 153            cf_windnew_PH(s,ss)  capacity factor of new wind clusters in Panhandle region
+ 154  ;
+ 181   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 182  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    172 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 183  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    173 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 184  $LOADDC  cf_csp_NE, cf_pvsat_NE, cf_windold_NE, cf_windnew_NE
+****        $502
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE    174 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 185  $LOADDC  cf_csp_W, cf_pvsat_W, cf_windold_W, cf_windnew_W
+****        $502
+**** LINE    175 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 186  $LOADDC  cf_csp_C, cf_pvsat_C, cf_windold_C, cf_windnew_C
+****        $502
+**** LINE    176 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 187  $LOADDC  cf_csp_S, cf_pvsat_S, cf_windold_S, cf_windnew_S
+****        $502
+**** LINE    177 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 188  $LOADDC  cf_csp_PH, cf_pvsat_PH, cf_windold_PH, cf_windnew_PH
+****        $502
+**** LINE    178 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 190   
+ 191  cf(CSP,'Northeast',t,ss,s)=cf_csp_NE(s,ss);
+****                                     $141
+**** LINE    181 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 192  cf(PV,'Northeast',t,ss,s)=cf_pvsat_NE(s,ss);
+****                                      $141
+**** LINE    182 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 193  cf('wind-old','Northeast',t,ss,s)=cf_windold_NE(s,ss);
+****                                                $141
+**** LINE    183 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 194  cf('wind-new','Northeast',t,ss,s)=cf_windnew_NE(s,ss);
+****                                                $141
+**** LINE    184 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 195   
+ 196  cf(CSP,'West',t,ss,s)=cf_csp_W(s,ss);
+****                               $141
+**** LINE    186 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 197  cf(PV,'West',t,ss,s)=cf_pvsat_W(s,ss);
+****                                $141
+**** LINE    187 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 198  cf('wind-old','West',t,ss,s)=cf_windold_W(s,ss);
+****                                          $141
+**** LINE    188 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 199  cf('wind-new','West',t,ss,s)=cf_windnew_W(s,ss);
+****                                          $141
+**** LINE    189 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 200   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 201  cf(CSP,'Coastal',t,ss,s)=cf_csp_C(s,ss);
+****                                  $141
+**** LINE    191 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 202  cf(PV,'Coastal',t,ss,s)=cf_pvsat_C(s,ss);
+****                                   $141
+**** LINE    192 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 203  cf('wind-old','Coastal',t,ss,s)=cf_windold_C(s,ss);
+****                                             $141
+**** LINE    193 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 204  cf('wind-new','Coastal',t,ss,s)=cf_windnew_C(s,ss);
+****                                             $141
+**** LINE    194 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 205   
+ 206  cf(CSP,'South',t,ss,s)=cf_csp_S(s,ss);
+****                                $141
+**** LINE    196 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 207  cf(PV,'South',t,ss,s)=cf_pvsat_S(s,ss);
+****                                 $141
+**** LINE    197 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 208  cf('wind-old','South',t,ss,s)=cf_windold_S(s,ss);
+****                                           $141
+**** LINE    198 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 209  cf('wind-new','South',t,ss,s)=cf_windnew_S(s,ss);
+****                                           $141
+**** LINE    199 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 210   
+ 211  cf(CSP,'Panhandle',t,ss,s)=cf_csp_PH(s,ss);
+****                                     $141
+**** LINE    201 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 212  cf(PV,'Panhandle',t,ss,s)=cf_pvsat_PH(s,ss);
+****                                      $141
+**** LINE    202 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 213  cf('wind-old','Panhandle',t,ss,s)=cf_windold_PH(s,ss);
+****                                                $141
+**** LINE    203 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 214  cf('wind-new','Panhandle',t,ss,s)=cf_windnew_PH(s,ss);
+****                                                $141
+**** LINE    204 INCLUDE     /home/canl1/work/GETP/data/GTEP_hourly.gms
+**** LINE     10 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 215   
+ 216  cf(th,r,t,ss,s)=1;
+ 217   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 7
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 218  Display cf;
+ 219   
+ 220   
+ 221   
+ 222   
+ 223   
+ 224  *$include GTEP_hourly_dayofweek
+ 225  *$include GTEP_half_hourly.gms
+ 226  *$include GTEP_quarter_hourly.gms
+ 227  *$include GTEP_hourly_week
+ 228  *$include GTEP_hourly_week_proportional
+ 229  *$include GTEP_hourly_3days
+ 230  *$include GTEP_hourly_4days
+ 231  *$include GTEP_hourly_5days
+ 232  *$include GTEP_hourly_11daysyear
+ 233  *$include GTEP_hourly_10daysyear
+ 234  *$include GTEP_hourly_9daysyear
+ 235  *$include GTEP_hourly_8daysyear
+ 236  *$include GTEP_hourly_7daysyear
+ 237  *$include GTEP_hourly_6daysyear
+ 238  *$include GTEP_hourly_5daysyear
+ 239  *$include GTEP_hourly_3daysyear
+ 240  *$include GTEP_hourly_2daysyear
+ 241  *$include GTEP_hourly_1dayyear
+ 242   
+ 243  *Include general data
+INCLUDE    /home/canl1/work/GETP/data/GTEP_general_data.gms
+ 245  * Generation and Transmission Expansion model for ERCOT region
+ 246  * Author: C.L. Lara and I.E. Grossmann
+ 247  * Last revision: 05/17/2016
+ 248   
+ 249   
+ 250  ********************************************************************************
+ 251  *************************** Capacity-related data ******************************
+ 252  ********************************************************************************
+ 253   
+ 254  PARAMETER        Qg_np(i,r)    nameplate capacity per generator in cluster i of region r (MW)
+ 255                   Ng_old(i,r)   number of existing generators in each cluster per region r;
+ 260   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 261  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE     17 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 262  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE     18 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 8
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 263  $LOADDC  Qg_np
+****        $502
+**** LINE     19 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 264  $LOADDC  Ng_old
+****        $502
+**** LINE     20 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 266  DISPLAY Qg_np, Ng_old;
+****              $141    $141
+**** LINE     22 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 267   
+ 268   
+ 269  PARAMETER       I_max(i)               Installation upper bound (MW)
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=I_max rng=GenData!h63:i78   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 270  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=I_max rng=GenData!h63:i78   rdim=1
+****                                                                              $330
+**** LINE     26 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 271  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE     27 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 272  $LOAD I_max
+****      $502
+**** LINE     28 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 274  DISPLAY I_max;
+****              $141
+**** LINE     30 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 275   
+ 276  PARAMETER       Ng_max(i,r)             maximum number generators in each new cluster;
+ 277  Ng_max(i,r)=floor(I_max(i)/Qg_np(i,r))$(Qg_np(i,r) NE 0) + 0;
+ 278  DISPLAY Ng_max;
+ 279   
+ 280  PARAMETER        Qinst_UB(i,t)         'upper bound on yearly installation based on energy (MW/year)';
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=Qinst_UB rng=GenData!ac26:bg42   rdim=1 cdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 281  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=Qinst_UB rng=GenData!ac26:bg42   rdim=1 cdim=1
+****                                                                                          $330
+**** LINE     37 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 282  $GDXIN GTEPdata_rev.gdx
+****                        $510
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    09/20/19 16:04:04 Page 9
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE     38 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 283  $LOAD Qinst_UB
+****      $502
+**** LINE     39 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 285  Display Qinst_UB;
+****                 $141
+**** LINE     41 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 286   
+ 287  PARAMETER        LT(i)           expected lifetime of a generator in cluster i (years);
+ 291   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 292  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE     48 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 293  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE     49 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 294  $LOADDC  LT
+****        $502
+**** LINE     50 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 296   
+ 297  DISPLAY LT;
+****           $141
+**** LINE     53 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 298   
+ 299  PARAMETER        Tremain(t)      remaining time in years;
+ 300  Tremain(t)= CARD(t)-ORD(t)+1;
+ 301   
+ 302  DISPLAY Tremain;
+ 303   
+ 304   
+ 305  PARAMETER        Ng_r_NE(t,old)          # of generators to retire at year in cluster i in the Northeast region
+ 306                   Ng_r_W(t,old)           # of generators to retire at year in cluster i in the West region
+ 307                   Ng_r_C(t,old)           # of generators to retire at year in cluster i in the Coastal region
+ 308                   Ng_r_S(t,old)           # of generators to retire at year in cluster i in the South region
+ 309                   Ng_r_PH(t,old)          # of generators to retire at year in cluster i in the Panhandle region
+ 310                   Ng_r(old,r,t)           # of generators to retire at year in cluster i in region r
+ 311  ;
+ 319   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 10
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 320  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE     76 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 321  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE     77 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 322  $LOADDC  Ng_r_NE, Ng_r_W, Ng_r_C, Ng_r_S, Ng_r_PH
+****        $502
+**** LINE     78 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 324   
+ 325  Ng_r(old,'Northeast',t)=Ng_r_NE(t,old);
+****                                $141
+**** LINE     81 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 326  Ng_r(old,'West',t)=Ng_r_W(t,old);
+****                          $141
+**** LINE     82 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 327  Ng_r(old,'Coastal',t)=Ng_r_C(t,old);
+****                             $141
+**** LINE     83 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 328  Ng_r(old,'South',t)=Ng_r_S(t,old);
+****                           $141
+**** LINE     84 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 329  Ng_r(old,'Panhandle',t)=Ng_r_PH(t,old);
+****                                $141
+**** LINE     85 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 330   
+ 331  DISPLAY Ng_r;
+ 332   
+ 333  PARAMETER        q_v(i)      capacity value;
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=q_v rng=GenData!e63:f78   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 334  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=q_v rng=GenData!e63:f78   rdim=1
+****                                                                            $330
+**** LINE     90 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 335  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE     91 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 11
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 336  $LOAD q_v
+****      $502
+**** LINE     92 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 338  Display q_v;
+****            $141
+**** LINE     94 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 339   
+ 340  ********************************************************************************
+ 341  ******************************* Operational data *******************************
+ 342  ********************************************************************************
+ 343   
+ 344  PARAMETER Pg_min(i)       Minimum operating output of a generator in cluster i (% nameplate);
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=Pg_min rng=GenData!q45:r60   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 345  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=Pg_min rng=GenData!q45:r60   rdim=1
+****                                                                               $330
+**** LINE    101 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 346  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    102 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 347  $LOAD Pg_min
+****      $502
+**** LINE    103 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 349  Display Pg_min;
+****               $141
+**** LINE    105 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 350   
+ 351  PARAMETER Ru_max(i)      'maximum up-ramp rate (% Qg_np/h)'
+ 352            Rd_max(i)      'maximum down-ramp rate (% QG_np/h)';
+ 357   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 358  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    114 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 359  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    115 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 12
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 360  $LOADDC  Ru_max
+****        $502
+**** LINE    116 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 361  $LOADDC  Rd_max
+****        $502
+**** LINE    117 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 363  DISPLAY Ru_max, Rd_max;
+****               $141    $141
+**** LINE    119 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 364   
+ 365   
+ 366  PARAMETER f_start(i)      'fuel usage at startup (MMBtu/MW)';
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=f_start rng=GenData!b63:c78   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 367  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=f_start rng=GenData!b63:c78   rdim=1
+****                                                                                $330
+**** LINE    123 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 368  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    124 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 369  $LOAD f_start
+****      $502
+**** LINE    125 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 371  Display f_start;
+****                $141
+**** LINE    127 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 372   
+ 373  PARAMETER C_start(i)      'fixed startup cost ($/MW)';
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=C_start rng=GenData!k63:l78   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 374  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=C_start rng=GenData!k63:l78   rdim=1
+****                                                                                $330
+**** LINE    130 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 375  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    131 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 376  $LOAD C_start
+****      $502
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 13
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE    132 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 378  Display C_start;
+****                $141
+**** LINE    134 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 379   
+ 380  PARAMETER frac_spin(i)   maximum fraction of each cluster that can contribute to spinning reserves
+ 381            frac_Qstart(i) maximum fraction of each cluster that can contribute to quick-start reserves;
+ 386   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 387  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    143 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 388  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    144 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 389  $LOADDC  frac_spin
+****        $502
+**** LINE    145 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 390  $LOADDC  frac_Qstart
+****        $502
+**** LINE    146 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 392   
+ 393  DISPLAY frac_spin, frac_Qstart;
+****                  $141         $141
+**** LINE    149 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 394   
+ 395  ********************************************************************************
+ 396  ******************************* Transmission data ******************************
+ 397  ********************************************************************************
+ 398   
+ 399  PARAMETER t_loss(r,r_) 'transmission loss metric between region r and region r_(%/miles)'
+ 400  ;
+ 401  t_loss(r,r_)=0.0001;
+ 402  display t_loss;
+ 403  * 1%/100 miles as it was assumed in ReEDS model
+ 404   
+ 405  PARAMETER dist(r,r_)   'distance from region z to region z_ (miles)'
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=dist rng=Transm!a4:f9   rdim=1 cdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 406  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=dist rng=Transm!a4:f9   rdim=1 cdim=1
+****                                                                                 $330
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 14
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE    162 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 407  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    163 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 408  $LOAD dist
+****      $502
+**** LINE    164 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 410  DISPLAY dist;
+****             $141
+**** LINE    166 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 411   
+ 412  PARAMETER t_up(r,r_)   transmission limit (MW)
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=t_up rng=Transm!a17:f22   rdim=1 cdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 413  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=t_up rng=Transm!a17:f22   rdim=1 cdim=1
+****                                                                                   $330
+**** LINE    169 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 414  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    170 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 415  $LOAD t_up
+****      $502
+**** LINE    171 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 417  DISPLAY t_up;
+****             $141
+**** LINE    173 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 418   
+ 419  PARAMETER t_cost        'transmission cost in $/mile';
+ 420  t_cost=2000000;
+ 421   
+ 422  ********************************************************************************
+ 423  *************************** Cost-related data **********************************
+ 424  ********************************************************************************
+ 425   
+ 426   
+ 427  SCALAR
+ 428           ir              nominal interest rate   /0.057/
+ 429  ;
+ 430  display ir;
+ 431   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 15
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 432  PARAMETER
+ 433           if_(t)          discount factor for year t
+ 434           ED(t)           energy demand during year t (MWh)
+ 435           Rmin(t)         system minimum reserve margin for year t (fraction)
+ 436  ;
+ 437   
+ 438  *Interest factor
+ 439  if_(t) = 1/((1+ir)**(ORD(t)-1));
+ 440   
+ 441   
+ 442  *Energy demand
+ 443  ED(t)=sum((r,ss,s),(n_ss(ss)*hs*L(r,t,ss,s)));
+ 444   
+ 445  *Minimum reserve margin
+ 446  Rmin(t)=0.1375;
+ 447  display if_, ED, Rmin;
+ 448   
+ 449  PARAMETER
+ 450           hr(i,r)         'heat rate of cluster i in region r (MMBtu/MWh)'
+ 451           P_fuel_NG(t)    'price of NG in year t ($/MMBtu)'
+ 452           P_fuel_coal(t)  'price of coal in year t ($/MMBtu)'
+ 453           P_fuel(i,t)     'price of fuel for cluster i in year t ($/MMBtu)'
+ 454           EF_CO2(i)       'full lifecycle emission factor (kg CO2/MMBtu)'
+ 455  ;
+ 456   
+ 457   
+ 458  *Heat Rate
+ 462   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 463  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    219 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 464  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    220 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 465  $LOADDC  hr
+****        $502
+**** LINE    221 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 467  display hr;
+****           $141
+**** LINE    223 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 468   
+ 469  *Price of fuel (source US Energy Information Administration)
+ 474   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 16
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 475  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    231 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 476  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    232 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 477  $LOADDC  P_fuel_NG, P_fuel_coal
+****        $502
+**** LINE    233 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 479   
+ 480  P_fuel(ng,t)=P_fuel_NG(t);
+****                       $141
+**** LINE    236 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 481  P_fuel(co,t)=P_fuel_coal(t);
+****                         $141
+**** LINE    237 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 482  P_fuel(nu,t)=0.72;
+ 483  P_fuel(rn,t)=0;
+ 484   
+ 485  DISPLAY P_fuel;
+ 486   
+ 487   
+ 488  *CO2 emission factor in (kg CO2/MWh)
+ 492   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 493  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    249 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 494  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    250 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 495  $LOADDC  EF_CO2
+****        $502
+**** LINE    251 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 497   
+ 498  DISPLAY EF_CO2;
+****               $141
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 17
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE    254 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 499   
+ 500   
+ 501  PARAMETER        FOC(i,t)         'fixed operating cost ($/MW)';
+ 505   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 506  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    262 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 507  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    263 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 508  $LOADDC  FOC
+****        $502
+**** LINE    264 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 510   
+ 511  Display FOC;
+****            $141
+**** LINE    267 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 512   
+ 513   
+ 514  PARAMETER        VOC(i,t)          'variable operating cost ($/MWh)';
+ 518   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 519  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE    275 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 520  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE    276 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 521  $LOADDC  VOC
+****        $502
+**** LINE    277 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 523   
+ 524  Display VOC;
+****            $141
+**** LINE    280 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 18
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 525   
+ 526  PARAMETER        ACC(i,t)          'annualized capital cost ($/MW)'
+ 527                   CCm(i)            capital cost multiplier (unitless)
+ 528  ;
+ 529   
+ 530  *Overnight capital cost
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=ACC rng=CapCost!A23:AE39   rdim=1 cdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 531  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=ACC rng=CapCost!A23:AE39   rdim=1 cdim=1
+****                                                                                    $330
+**** LINE    287 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 532  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    288 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 533  $LOADDC ACC
+****        $502
+**** LINE    289 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 535  *Display ACC;
+ 536   
+ 537  *Capital Cost multiplier
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=CCm rng=CapCost!G43:H58   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 538  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=CCm rng=CapCost!G43:H58   rdim=1
+****                                                                            $330
+**** LINE    294 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 539  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    295 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 540  $LOADDC CCm
+****        $502
+**** LINE    296 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 542  *Display CCm;
+ 543   
+ 544   
+ 545  PARAMETER        DIC(i,t)        'discounted investment cost ($/MW)';
+ 546  DIC(new,t) = ACC(new,t)*sum((tt)$(ORD(tt) LE min(LT(new),Tremain(t))), if_(tt));
+****                 $141
+**** LINE    302 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 547   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 19
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 548  *DIC for existing plants is used in the calculation of extended lifetime cost
+ 549  *It is the same as for the new clusters that have the same or similar generation technology
+ 550  DIC('coal-st-old1',t) = DIC('coal-igcc-new',t);
+ 551  DIC('ng-ct-old',t) = DIC('ng-ct-new',t);
+ 552  DIC('ng-st-old',t) = DIC('coal-igcc-new',t);
+ 553  DIC('ng-cc-old',t) = DIC('ng-cc-new',t);
+ 554  DIC('nuc-st-old',t) = DIC('nuc-st-new',t);
+ 555  DIC('pv-old',t) = DIC('pv-new',t);
+ 556  DIC('wind-old',t) = DIC('wind-new',t);
+ 557  DISPLAY DIC;
+ 558   
+ 559  PARAMETER        LEC(i)          'life extension cost (% DIC(i,y) of corresponding new generator)';
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 par=LEC rng=GenData!Q63:R78   rdim=1"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 560  $call GDXXRW GTEPdata_rev.xlsx trace=3 par=LEC rng=GenData!Q63:R78   rdim=1
+****                                                                            $330
+**** LINE    316 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 561  $GDXIN GTEPdata_rev.gdx
+****                        $510
+**** LINE    317 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 562  $LOADDC LEC
+****        $502
+**** LINE    318 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 564   
+ 565  DISPLAY LEC;
+****            $141
+**** LINE    321 INCLUDE     /home/canl1/work/GETP/data/GTEP_general_data.gms
+**** LINE     31 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 566   
+ 567   
+ 568   
+ 569   
+ 570  *Select case scenario:
+INCLUDE    /home/canl1/work/GETP/data/ref_case.gms
+ 572  * Generation and Transmission Expansion model for ERCOT region
+ 573  * Author: C.L. Lara and I.E. Grossmann
+ 574  * Last revision: 05/18/2016
+ 575   
+ 576  ********************************************************************************
+ 577  ********************************** REFERENCE CASE ******************************
+ 578  ********************************************************************************
+ 579   
+ 580  PARAMETER        PEN(t)          'penalty for not meeting the RES quota target during year t ($/MWh)';
+ 581  PEN(t)= 5000;
+ 582  display PEN;
+ 583   
+ 584  PARAMETER        PENc            'penalty for curtailment';
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 20
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 585  PENc= 0;
+ 586  display PENc;
+ 587   
+ 588  PARAMETERS       tx_CO2(t)       'carbon tax in year t ($/kg CO2)'
+ 589                   RES_min(t)      minimum RES production requirement during year t (per unit of annual demand)
+ 590  ;
+ 591   
+ 592  *carbon tax (kg CO2/MWh)
+ 593  tx_CO2(t)=0;
+ 594  DISPLAY tx_CO2;
+ 595   
+ 596  *min RES production quota
+ 600   
+****  CALL=127 "GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt"
+****  Above call failed, RC=127
+****  ERRORLEVEL set to 1
+ 601  $call GDXXRW GTEPdata_rev.xlsx trace=3 @task.txt
+****                                                 $330
+**** LINE     30 INCLUDE     /home/canl1/work/GETP/data/ref_case.gms
+**** LINE     34 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+**** File: /home/canl1/work/GETP/data/GTEPdata_rev.gdx
+**** Msg : No such file or directory
+ 602  $GDXIN   GTEPdata_rev.gdx
+****                          $510
+**** LINE     31 INCLUDE     /home/canl1/work/GETP/data/ref_case.gms
+**** LINE     34 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 603  $LOADDC  RES_min
+****        $502
+**** LINE     32 INCLUDE     /home/canl1/work/GETP/data/ref_case.gms
+**** LINE     34 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 605  DISPLAY RES_min;
+****                $141
+**** LINE     34 INCLUDE     /home/canl1/work/GETP/data/ref_case.gms
+**** LINE     34 INPUT       /home/canl1/work/GETP/data/GTEP_data.gms
+ 606  *$include case1.gms
+ 607  *include case2.gms
+ 608  *$include case3.gms
+ 609  *$include case4.gms
+ 610   
+ 611  Execute_unload 'GTEP_data.gdx';
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 21
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Error Messages
+
+
+141  Symbol declared but no values have been assigned. Check for missing
+        data definition, assignment, data loading or implicit assignment
+        via a solve statement.
+        A wild shot: You may have spurious commas in the explanatory
+        text of a declaration. Check symbol reference list.
+330  CALL failed
+352  Set has not been initialized
+502  GDXIN  file not open - ignore rest of line
+510  Unable to open gdx file for $GDXIN
+
+**** 149 ERROR(S)   0 WARNING(S)
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                   09/20/19 16:04:04 Page 22
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Include File Summary
+
+
+   SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
+
+     1        1 INPUT          0       0  /home/canl1/work/GETP/data/GTEP_data.gms
+     2       10 INCLUDE        1      10  ./home/canl1/work/GETP/data/GTEP_hourly.gms
+     3      244 INCLUDE        1      31  ./home/canl1/work/GETP/data/GTEP_general_data.gms
+     4      571 INCLUDE        1      34  ./home/canl1/work/GETP/data/ref_case.gms
+
+
+COMPILATION TIME     =        0.051 SECONDS      3 MB  26.1.0 rf2b37b9 LEX-LEG
+
+
+USER: Eval License Carnegie Mellon University        G190206/0001AB-GEN
+      Dept. of Chemical Engineering                              DC9476
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      /home/canl1/work/GETP/data/GTEP_data.gms
+Output     /home/canl1/work/GETP/data/GTEP_data.lst
+
+**** USER ERROR(S) ENCOUNTERED

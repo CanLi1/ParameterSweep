@@ -1,0 +1,236 @@
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+   1  * Generation and Transmission Expansion model for ERCOT region
+   2  * Author: C.L. Lara and I.E. Grossmann
+   3  * Last revision: 09/26/2016
+   4   
+   5  ********************************************************************************
+   6  ************************************ Data **************************************
+   7  ********************************************************************************
+   8   
+   9  SET      r       load node (ERCOT regions)
+  10  ;
+  11   
+  12  SETS     i         generation clusters
+  13           th(i)     thermal clusters
+  14           rn(i)     renewable clusters
+  15           co(th)     coal clusters
+  16           ng(th)     NG clusters
+  17           nu(th)     nuclear clusters
+  18           PV(rn)     solar PV clusters
+  19           CSP(rn)    solar CSP clusters
+  20           wi(rn)     wind clusters
+  21           old(i)    existing clusters
+  22           new(i)    potential clusters
+  23           rold(old) rn existing clusters
+  24           rnew(new) rn potential clusters
+  25           told(old) th existing clusters
+  26           tnew(new) th potential clusters
+  27  ;
+  28   
+  29  SETS     i_r(i,r)  mapping set between regions and clusters;
+  30   
+  31  ALIAS (i,ii);
+  32   
+  33  SETS
+  34           t       time periods (years) /1*15/
+  35           ss      season
+  36           s       subperiods
+  37  ;
+  38   
+  39  ALIAS (t,tt,ttt)
+  40        (s,s_)
+  41        (r,r_);
+  42   
+  43  PARAMETERS
+  44                   L(r,t,ss,s)      load demand per region for subperiod s in season ss of year t(MW)
+  45                   n_ss(ss)         days per season
+  46                   L_max(t)         peak load in year t (MW)
+  47                   cf(i,r,t,ss,s)   capacity factor
+  48                   Qg_np(i,r)       nameplate capacity per generator in cluster i of region r (MW)
+  49                   Ng_old(i,r)      number of existing generators in each cluster per region r
+  50                   Ng_max(i,r)      maximum number generators in each new cluster
+  51                   Qinst_UB(i,t)    'upper bound on yearly installation based on energy (MW/year)'
+  52                   LT(i)            expected lifetime of a generator in cluster i (years)
+  53                   Tremain(t)       remaining time in years
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+  54                   Ng_r(old,r,t)    # of generators to retire at year in cluster i in region r
+  55                   q_v(i)           capacity value
+  56                   Pg_min(i)        Minimum operating output of a generator in cluster i (% nameplate)
+  57                   Ru_max(i)        'maximum up-ramp rate (% Qg_np/h)'
+  58                   Rd_max(i)        'maximum down-ramp rate (% QG_np/h)'
+  59                   f_start(i)       'fuel usage at startup (MMBtu/MW)'
+  60                   C_start(i)       'fixed startup cost ($/MW)'
+  61                   frac_spin(i)     maximum fraction of each cluster that can contribute to spinning reserves
+  62                   frac_Qstart(i)   maximum fraction of each cluster that can contribute to quick-start reserves
+  63                   t_loss(r,r_)     'transmission loss metric between region r and region r_(%/miles)'
+  64                   t_up(r,r_)       transmission limit (MW)
+  65                   dist(r,r_)       'distance from region z to region z_ (miles)'
+  66                   if_(t)           interest factor for year t
+  67                   ED(t)            energy demand during year t (MWh)
+  68                   Rmin(t)          system minimum reserve margin for year t (fraction)
+  69                   hr(i,r)          'heat rate of cluster i in region r (MMBtu/MWh)'
+  70                   P_fuel(i,t)      'price of fuel for cluster i in year t ($/MMBtu)'
+  71                   EF_CO2(i)        'full lifecycle emission factor (kg CO2/MMBtu)'
+  72                   FOC(i,t)         'fixed operating cost ($/MW)'
+  73                   VOC(i,t)         'variable operating cost ($/MWh)'
+  74                   CCm(i)           capital cost multiplier (unitless)
+  75                   DIC(i,t)         'discounted investment cost ($/MW)'
+  76                   LEC(i)           'life extension cost (% DIC(i,y) of corresponding new generator)'
+  77                   PEN(t)           'penalty for not meeting the RES quota target during year t ($/MWh)'
+  78                   PENc             'penalty for curtailment'
+  79                   tx_CO2(t)        'carbon tax in year t ($/kg CO2)'
+  80                   RES_min(t)       minimum RES production requirement during year t (per unit of annual demand)
+  81  ;
+  82           SCALARS
+  83                   hs     duration of the subperiod s of year y (hr)
+  84                   ir     nominal interest rate;
+  85   
+GDXIN   /home/canl1/work/GETP/data/GTEP_data.gdx
+--- LOAD  i = 1:i
+--- LOAD  th = 2:th
+--- LOAD  rn = 3:rn
+--- LOAD  co = 4:co
+--- LOAD  ng = 5:ng
+--- LOAD  nu = 6:nu
+--- LOAD  PV = 7:PV
+--- LOAD  CSP = 8:CSP
+--- LOAD  wi = 9:wi
+--- LOAD  old = 10:old
+--- LOAD  new = 11:new
+--- LOAD  rold = 12:rold
+--- LOAD  rnew = 13:rnew
+--- LOAD  told = 14:told
+--- LOAD  tnew = 15:tnew
+--- LOAD  r = 20:r
+--- LOAD  ss = 18:ss
+--- LOAD  s = 19:s
+--- LOAD  L = 31:L
+--- LOAD  n_ss = 32:n_ss
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+--- LOAD  L_max = 36:L_max
+--- LOAD  cf = 37:cf
+--- LOAD  Qg_np = 58:Qg_np
+--- LOAD  Ng_old = 59:Ng_old
+--- LOAD  Ng_max = 61:Ng_max
+--- LOAD  Qinst_UB = 62:Qinst_UB
+--- LOAD  LT = 63:LT
+--- LOAD  Tremain = 64:Tremain
+--- LOAD  Ng_r = 70:Ng_r
+--- LOAD  q_v = 71:q_v
+--- LOAD  Pg_min = 72:Pg_min
+--- LOAD  Ru_max = 73:Ru_max
+--- LOAD  Rd_max = 74:Rd_max
+--- LOAD  f_start = 75:f_start
+--- LOAD  C_start = 76:C_start
+--- LOAD  frac_spin = 77:frac_spin
+--- LOAD  frac_Qstart = 78:frac_Qstart
+--- LOAD  t_loss = 79:t_loss
+--- LOAD  t_up = 81:t_up
+--- LOAD  dist = 80:dist
+--- LOAD  if_ = 84:if_
+--- LOAD  ED = 85:ED
+--- LOAD  Rmin = 86:Rmin
+--- LOAD  hr = 87:hr
+--- LOAD  P_fuel = 90:P_fuel
+--- LOAD  EF_CO2 = 91:EF_CO2
+--- LOAD  FOC = 92:FOC
+--- LOAD  VOC = 93:VOC
+--- LOAD  CCm = 95:CCm
+--- LOAD  DIC = 96:DIC
+--- LOAD  LEC = 97:LEC
+--- LOAD  PEN = 98:PEN
+--- LOAD  PENc = 99:PENc
+--- LOAD  tx_CO2 = 100:tx_CO2
+--- LOAD  RES_min = 101:RES_min
+--- LOAD  hs = 35:hs
+--- LOAD  ir = 83:ir
+  93   
+  94  i_r(old,r)$(Ng_old(old,r) NE 0) = yes;
+  95  i_r(new,r)=yes;
+  96  display i_r;
+  97   
+  98  Execute_unload 'GTEP_data.gdx';
+  99   
+ 100  Execute "gdx2sqlite -i GTEP_data.gdx -o GTEP_data_15years.db";
+ 101   
+ 102   
+ 103   
+ 104   
+ 105   
+ 106   
+ 107   
+ 108   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+ 109   
+ 110   
+ 111   
+ 112   
+ 113   
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Include File Summary
+
+
+   SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
+
+     1        1 INPUT          0       0  /home/canl1/work/GETP/data/GTEPmodel_smalltestcase.gms
+     2       86 GDXIN          1      86  /home/canl1/work/GETP/data/GTEP_data.gdx
+
+
+COMPILATION TIME     =        0.075 SECONDS      7 MB  26.1.0 rf2b37b9 LEX-LEG
+GAMS 26.1.0  rf2b37b9 Released Feb  2, 2019 LEX-LEG x86 64bit/Linux                                                                                                                                                                    10/07/19 16:51:25 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+----     96 SET i_r  mapping set between regions and clusters
+
+                    Northeast        West     Coastal       South   Panhandle
+
+coal-st-old1              YES         YES         YES         YES
+ng-ct-old                 YES         YES         YES         YES         YES
+ng-cc-old                 YES         YES         YES         YES
+ng-st-old                 YES         YES                     YES
+nuc-st-old                YES                     YES
+pv-old                                YES                     YES
+wind-old                  YES         YES         YES         YES         YES
+nuc-st-new                YES         YES         YES         YES         YES
+wind-new                  YES         YES         YES         YES         YES
+pv-new                    YES         YES         YES         YES         YES
+csp-new                   YES         YES         YES         YES         YES
+coal-igcc-new             YES         YES         YES         YES         YES
+coal-igcc-ccs-new         YES         YES         YES         YES         YES
+ng-cc-new                 YES         YES         YES         YES         YES
+ng-cc-ccs-new             YES         YES         YES         YES         YES
+ng-ct-new                 YES         YES         YES         YES         YES
+
+
+
+EXECUTION TIME       =       11.887 SECONDS      8 MB  26.1.0 rf2b37b9 LEX-LEG
+
+
+USER: Eval License Carnegie Mellon University        G190206/0001AB-GEN
+      Dept. of Chemical Engineering                              DC9476
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      /home/canl1/work/GETP/data/GTEPmodel_smalltestcase.gms
+Output     /home/canl1/work/GETP/data/GTEPmodel_smalltestcase.lst
