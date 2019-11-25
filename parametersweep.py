@@ -10,16 +10,13 @@ import random
 from copy import deepcopy
 import os.path
 from pyomo.environ import *
-import pymp
 import csv
 
 
 from scenarioTree import create_scenario_tree
 import deterministic.readData_det as readData_det
 import deterministic.optBlocks_det as b
-# import deterministic.optBlocks_det as b
-from forward_gtep import forward_pass
-from backward_SDDiP_gtep import backward_pass
+
 
 # ######################################################################################################################
 # USER-DEFINED PARAMS
@@ -27,7 +24,7 @@ from backward_SDDiP_gtep import backward_pass
 # Define case-study
 curPath = os.path.abspath(os.path.curdir)
 curPath = curPath.replace('/deterministic', '')
-print(curPath)
+
 # filepath = os.path.join(curPath, 'data/GTEPdata_2020_2034_no_nuc.db')
 filepath = os.path.join(curPath, 'data/GTEP_data_15years.db')
 # filepath = os.path.join(curPath, 'data/GTEPdata_2020_2039.db')
@@ -49,107 +46,146 @@ set_time_periods = range(1, time_periods + 1)
 t_per_stage = {1: [1], 2: [2], 3: [3], 4: [4], 5: [5], 6: [6], 7: [7], 8: [8], 9: [9], 10: [10],
                11: [11], 12: [12], 13: [13], 14: [14], 15: [15]}
 
-# Define parameters of the decomposition
-max_iter = 100
-opt_tol = 1  # %
 
-# ######################################################################################################################
 
 # create scenarios and input data
 nodes, n_stage, parent_node, children_node, prob, sc_nodes = create_scenario_tree(stages, scenarios, single_prob)
 readData_det.read_data(filepath, curPath, stages, n_stage, t_per_stage)
 sc_headers = list(sc_nodes.keys())
 
-# operating scenarios
-prob_op = 1
-# print(operating_scenarios)
 
-# list of thermal generators:
-th_generators = ['coal-st-old1', 'coal-igcc-new', 'coal-igcc-ccs-new', 'ng-ct-old', 'ng-cc-old', 'ng-st-old',
-                 'ng-cc-new', 'ng-cc-ccs-new', 'ng-ct-new']
-# 'nuc-st-old', 'nuc-st-new'
 
-# Shared data among processes
-ngo_rn_par_k = {}
-ngo_th_par_k = {}
-nso_par_k = {}
-nsb_par_k = {}
-nte_par_k = {}
-cost_forward = {}
-cost_scenario_forward = {}
-mltp_o_rn = {}
-mltp_o_th = {}
-mltp_so = {}
-mltp_te = {}
-cost_backward = {}
-if_converged = {}
+
+
 
 # Map stage by time_period
 stage_per_t = {t: k for k, v in t_per_stage.items() for t in v}
 
 
-# print(stage_per_t)
 
 # create blocks
+max_iter=100
 m = b.create_model(n_stages, time_periods, t_per_stage, max_iter)
 start_time = time.time()
 
-# Decomposition Parameters
-m.ngo_rn_par = Param(m.rn_r, m.stages, default=0, initialize=0, mutable=True)
-m.ngo_th_par = Param(m.th_r, m.stages, default=0, initialize=0, mutable=True)
-m.nso_par = Param(m.j, m.r, m.stages, default=0, initialize=0, mutable=True)
-m.nte_par = Param(m.l_new, m.stages, default=0, initialize=0, mutable=True)
+#=================================start Parameter sweep =====================
+#m.Qg_np: generator nameplate capacity (MW)
+# m.CCm: capital cost multiplier of generator cluster i (unitless)
+#m.Pg_min: minimum operating output of a generator in cluster i ∈ ITH (fraction of the nameplate capacity)
+# m.Ru_max: maximum ramp-up rate for cluster i ∈ ITH (fraction of nameplate capacity)
+# m.Rd_max: maximum ramp-down rate for cluster i ∈ ITH (fraction of nameplate capacity)
+# m.hr: heat rate of generator cluster i (MMBtu/MWh)
+# m.EF_CO2: full lifecycle CO2 emission factor for generator cluster i (kgCO2/MMBtu)
 
-# Parameters to compute upper and lower bounds
-mean = {}
-std_dev = {}
-cost_tot_forward = {}
-cost_UB = {}
-cost_LB = {}
-gap = {}
-scenarios_iter = {}
+Qg_np_ratio = [0.5, 0.75, 1.0, 1.25]
+Pg_min_params = [0, 0.15, 0.3, 0.45]
+ramp_params =  [0.15, 0.25, 0.35]
+hr_params = [5, 10, 15]
+EF_CO2_ratio = [0.5, 0.75, 1.0]
+
+p1, p2, p3, p4, p5 = 0, 0, 0, 0, 0
+
+i_r_keys = [('coal-first-new', 'Northeast'), ('coal-first-new', 'West'), ('coal-first-new', 'Coastal'), ('coal-first-new', 'South'), ('coal-first-new', 'Panhandle')]
+for key in i_r_keys:
+    m.Qg_np[key] = readData_det.Qg_np[key] * Qg_np_ratio[p1]
+m.CCm['coal-first-new'] = readData_det.CCm['coal-first-new'] * pow(Qg_np_ratio[p1], 0.55)
+
+m.Pg_min['coal-first-new'] = Pg_min_params[p2]
+
+m.Ru_max['coal-first-new'] = ramp_params[p3]
+m.Rd_max['coal-first-new'] = ramp_params[p3]
+
+for key in i_r_keys:
+    m.hr[key] = hr_params[p4]
+
+m.EF_CO2['coal-first-new'] = readData_det.EF_CO2['coal-first-new'] * EF_CO2_ratio[p5]    
+
+#=================================end Parameter sweep =====================
+
+#===================start set scenario ======================================
+# m.L: load demand in region r in sub-period s of representative day d of year t (MW)
+# m.cf: capacity factor of renewable generation cluster i in region r at sub-period s, of representative day d of r
+#     year t (fraction of the nameplate capacity)
+# m.P_fuel: price of fuel for generator cluster i in year t ($/MMBtu)
+# m.tx_CO2: carbon tax in year t ($/kg CO2)
+scenario_L = [0, 1]
+scenario_cf = [0, 1]
+scenario_P_fuel = ["L", "M", "H"]
+scenario_tx_CO2 = ["L", "M", "H"]
+s1, s2, s3, s4 = 0,0,0,0
+for r in m.r:
+	for stage in m.stages:
+	    for t in t_per_stage[stage]:
+	        for d in m.d:
+	            for s in m.hours:
+	                m.L[r, t, d, s] = readData_det.L_by_scenario[scenario_L[s1]][r, t, d, s]
+
+for r in m.r:
+	for stage in m.stages:
+	    for t in t_per_stage[stage]:
+	        for d in m.d:
+	            for s in m.hours:
+	                for rn in m.rn:
+	                    if (rn, r) in rn_r:
+	                        m.cf[rn, r, t, d, s] = readData_det.cf_by_scenario[scenario_cf[s2]][rn, r, t, d, s]
+
+for stage in m.stages:
+	for t in t_per_stage[stage]:
+	    for th in th_generators:
+	    	if stage == 1:
+	    		m.P_fuel[th, t, stage] = readData_det.P_fuel_scenarios[th, t, stage, 'O']	
+	    	else:
+	        	m.P_fuel[th, t, stage] = readData_det.P_fuel_scenarios[th, t, stage, scenario_P_fuel[s3]]	                        
+
+for stage in m.stages:
+	for t in t_per_stage[stage + 1]:
+		if stage == 1:
+			m.tx_CO2[t, stage] = 0
+		else:
+			m.tx_CO2[t, stage] = readData_det.tx_CO2[t, scenario_tx_CO2[s4]]
+
+#===================end set scenario ======================================
+
+
 
 # converting sets to lists:
-rn_r = list(m.rn_r)
-th_r = list(m.th_r)
-j_r = [(j, r) for j in m.j for r in m.r]
-l_new = list(m.l_new)
-
-# request the dual variables for all (locally) defined blocks
-for b in m.Bl.values():
-    b.dual = Suffix(direction=Suffix.IMPORT)
-
-# Add equality constraints (solve the full space)
-for stage in m.stages:
-    if stage != 1:
-        # print('stage', stage, 't_prev', t_prev)
-        for (rn, r) in m.rn_r:
-            m.Bl[stage].link_equal1.add(expr=(m.Bl[stage].ngo_rn_prev[rn, r] ==
-                                              m.Bl[stage-1].ngo_rn[rn, r, t_per_stage[stage-1][-1]] ))
-        for (th, r) in m.th_r:
-            m.Bl[stage].link_equal2.add(expr=(m.Bl[stage].ngo_th_prev[th, r] ==
-                                                m.Bl[stage-1].ngo_th[th, r, t_per_stage[stage-1][-1]]  ))
-        for (j, r) in j_r:
-            m.Bl[stage].link_equal3.add(expr=(m.Bl[stage].nso_prev[j, r] ==
-                                                 m.Bl[stage-1].nso[j, r, t_per_stage[stage-1][-1]]))
-
-        for l in m.l_new:
-            m.Bl[stage].link_equal4.add(expr=(m.Bl[stage].nte_prev[l] ==
-                                                 m.Bl[stage-1].nte[l, t_per_stage[stage-1][-1]]))
-m.obj = Objective(expr=0, sense=minimize)
-
-for stage in m.stages:
-    m.Bl[stage].obj.deactivate()
-    m.obj.expr += m.Bl[stage].obj.expr
+# rn_r = list(m.rn_r)
+# th_r = list(m.th_r)
+# j_r = [(j, r) for j in m.j for r in m.r]
+# l_new = list(m.l_new)
 
 
-# # solve relaxed model
-a = TransformationFactory("core.relax_integrality")
-a.apply_to(m)
+# # Add equality constraints (solve the full space)
+# for stage in m.stages:
+#     if stage != 1:
+#         # print('stage', stage, 't_prev', t_prev)
+#         for (rn, r) in m.rn_r:
+#             m.Bl[stage].link_equal1.add(expr=(m.Bl[stage].ngo_rn_prev[rn, r] ==
+#                                               m.Bl[stage-1].ngo_rn[rn, r, t_per_stage[stage-1][-1]] ))
+#         for (th, r) in m.th_r:
+#             m.Bl[stage].link_equal2.add(expr=(m.Bl[stage].ngo_th_prev[th, r] ==
+#                                                 m.Bl[stage-1].ngo_th[th, r, t_per_stage[stage-1][-1]]  ))
+#         for (j, r) in j_r:
+#             m.Bl[stage].link_equal3.add(expr=(m.Bl[stage].nso_prev[j, r] ==
+#                                                  m.Bl[stage-1].nso[j, r, t_per_stage[stage-1][-1]]))
 
-opt = SolverFactory("cplex")
-opt.options['mipgap'] = 0.01
-opt.solve(m, tee=True)
+#         for l in m.l_new:
+#             m.Bl[stage].link_equal4.add(expr=(m.Bl[stage].nte_prev[l] ==
+#                                                  m.Bl[stage-1].nte[l, t_per_stage[stage-1][-1]]))
+# m.obj = Objective(expr=0, sense=minimize)
+
+# for stage in m.stages:
+#     m.Bl[stage].obj.deactivate()
+#     m.obj.expr += m.Bl[stage].obj.expr
+
+
+# # # solve relaxed model
+# a = TransformationFactory("core.relax_integrality")
+# a.apply_to(m)
+
+# opt = SolverFactory("cplex")
+# opt.options['mipgap'] = 0.01
+# opt.solve(m, tee=True)
 
 
 # variable_operating_cost = []

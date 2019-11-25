@@ -65,14 +65,14 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
     #                       'ng-cc-new', 'ng-cc-ccs-new', 'ng-ct-new'], ordered=True)
     m.i = Set(initialize=['coal-st-old1', 'ng-ct-old', 'ng-cc-old', 'ng-st-old', 'pv-old', 'wind-old',
                           'wind-new', 'pv-new', 'csp-new', 'coal-igcc-new', 'coal-igcc-ccs-new',
-                          'ng-cc-new', 'ng-cc-ccs-new', 'ng-ct-new','nuc-st-old','nuc-st-new'], ordered=True)
+                          'ng-cc-new', 'ng-cc-ccs-new', 'ng-ct-new','nuc-st-old','nuc-st-new','coal-first-new'], ordered=True)
     # 'nuc-st-old', 'nuc-st-new',
     m.th = Set(within=m.i, initialize=['coal-st-old1', 'coal-igcc-new', 'coal-igcc-ccs-new',
                                        'ng-ct-old', 'ng-cc-old', 'ng-st-old', 'ng-cc-new', 'ng-cc-ccs-new',
                                        'ng-ct-new','nuc-st-old', 'nuc-st-new', 'coal-first-new'], ordered=True)
     # 'nuc-st-old', 'nuc-st-new',
     m.rn = Set(within=m.i, initialize=['pv-old', 'pv-new', 'csp-new', 'wind-old', 'wind-new'], ordered=True)
-    m.co = Set(within=m.th, initialize=['coal-st-old1', 'coal-igcc-new', 'coal-igcc-ccs-new'], ordered=True)
+    m.co = Set(within=m.th, initialize=['coal-st-old1', 'coal-igcc-new', 'coal-igcc-ccs-new', 'coal-first-new'], ordered=True)
     m.ng = Set(within=m.th, initialize=['ng-ct-old', 'ng-cc-old', 'ng-st-old', 'ng-cc-new', 'ng-cc-ccs-new',
                                         'ng-ct-new'], ordered=True)
     m.nu = Set(within=m.th, initialize=['nuc-st-old', 'nuc-st-new'], ordered=True)
@@ -196,16 +196,16 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
     m.L_max = Param(m.t, default=0, initialize=readData_det.L_max)
     # m.cf = Param(m.i, m.r, m.t, m.d, m.hours, default=0, mutable=True)  # initialize=readData_det.cf)
     m.cf = Param(m.i, m.r, m.t, m.d, m.hours, mutable=True, initialize=readData_det.cf_by_scenario[0])
-    m.Qg_np = Param(m.i_r, default=0, initialize=readData_det.Qg_np)
+    m.Qg_np = Param(m.i_r, default=0, mutable=True, initialize=readData_det.Qg_np)
     m.Ng_max = Param(m.i_r, default=0, initialize=readData_det.Ng_max)
     m.Qinst_UB = Param(m.i, m.t, default=0, initialize=readData_det.Qinst_UB)
     m.LT = Param(m.i, initialize=readData_det.LT, default=0)
     m.Tremain = Param(m.t, default=0, initialize=readData_det.Tremain)
     m.Ng_r = Param(m.old, m.r, m.t, default=0, initialize=readData_det.Ng_r)
     m.q_v = Param(m.i, default=0, initialize=readData_det.q_v)
-    m.Pg_min = Param(m.i, default=0, initialize=readData_det.Pg_min)
-    m.Ru_max = Param(m.i, default=0, initialize=readData_det.Ru_max)
-    m.Rd_max = Param(m.i, default=0, initialize=readData_det.Rd_max)
+    m.Pg_min = Param(m.i, default=0, mutable=True, initialize=readData_det.Pg_min)
+    m.Ru_max = Param(m.i, default=0, mutable=True, initialize=readData_det.Ru_max)
+    m.Rd_max = Param(m.i, default=0, mutable=True, initialize=readData_det.Rd_max)
     m.f_start = Param(m.i, default=0, initialize=readData_det.f_start)
     m.C_start = Param(m.i, default=0, initialize=readData_det.C_start)
     m.frac_spin = Param(m.i, default=0, initialize=readData_det.frac_spin)
@@ -216,13 +216,13 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
     m.if_ = Param(m.t, default=0, initialize=readData_det.if_)
     m.ED = Param(m.t, default=0, initialize=readData_det.ED)
     m.Rmin = Param(m.t, default=0, initialize=readData_det.Rmin)
-    m.hr = Param(m.i_r, default=0, initialize=readData_det.hr)
+    m.hr = Param(m.i_r, default=0, mutable=True, initialize=readData_det.hr)
     m.P_fuel = Param(m.i, m.t, default=0, initialize=readData_det.P_fuel)
     # m.P_fuel = Param(m.i, m.t_stage, default=0, mutable=True)
-    m.EF_CO2 = Param(m.i, default=0, initialize=readData_det.EF_CO2)
+    m.EF_CO2 = Param(m.i, default=0, mutable=True, initialize=readData_det.EF_CO2)
     m.FOC = Param(m.i, m.t, default=0, initialize=readData_det.FOC)
     m.VOC = Param(m.i, m.t, default=0, initialize=readData_det.VOC)
-    m.CCm = Param(m.i, default=0, initialize=readData_det.CCm)
+    m.CCm = Param(m.i, default=0, mutable=True, initialize=readData_det.CCm)
     m.DIC = Param(m.i, m.t, default=0, initialize=readData_det.DIC)
     m.LEC = Param(m.i, default=0, initialize=readData_det.LEC)
     m.PEN = Param(m.t, default=0, initialize=readData_det.PEN)
@@ -365,7 +365,7 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
         m.nso: Number of storage units of type j operational in region r, year t (relaxed to continuous)
         m.nsr: Number of storage units of type j retired in region r, year t (relaxed to continuous)
         '''
-
+        print(m.i_r, t_per_stage[stage], m.d, m.hours)
         b.P = Var(m.i_r, t_per_stage[stage], m.d, m.hours, within=NonNegativeReals, bounds=bound_P)
         b.cu = Var(m.r, t_per_stage[stage], m.d, m.hours, within=NonNegativeReals)
         b.RES_def = Var(t_per_stage[stage], within=NonNegativeReals)
