@@ -68,6 +68,12 @@ max_iter=100
 m = b.create_model(n_stages, time_periods, t_per_stage, max_iter)
 start_time = time.time()
 
+# converting sets to lists:
+rn_r = list(m.rn_r)
+th_r = list(m.th_r)
+j_r = [(j, r) for j in m.j for r in m.r]
+
+
 #=================================start Parameter sweep =====================
 #m.Qg_np: generator nameplate capacity (MW)
 # m.CCm: capital cost multiplier of generator cluster i (unitless)
@@ -76,6 +82,7 @@ start_time = time.time()
 # m.Rd_max: maximum ramp-down rate for cluster i ∈ ITH (fraction of nameplate capacity)
 # m.hr: heat rate of generator cluster i (MMBtu/MWh)
 # m.EF_CO2: full lifecycle CO2 emission factor for generator cluster i (kgCO2/MMBtu)
+
 
 Qg_np_ratio = [0.5, 0.75, 1.0, 1.25]
 Pg_min_params = [0, 0.15, 0.3, 0.45]
@@ -148,11 +155,7 @@ for stage in m.stages:
 
 
 
-# converting sets to lists:
-# rn_r = list(m.rn_r)
-# th_r = list(m.th_r)
-# j_r = [(j, r) for j in m.j for r in m.r]
-# l_new = list(m.l_new)
+
 
 
 # # Add equality constraints (solve the full space)

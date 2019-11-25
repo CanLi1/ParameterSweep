@@ -80,7 +80,7 @@ def read_data(database_file, curPath, stages, n_stage, t_per_stage):
 
     globals()['hs'] = 1
     globals()['ir'] = 0.057
-    globals()['PENc'] = 0
+    globals()['PENc'] = 5000
     t_up['West', 'Coastal'] = 0
     t_up['Coastal', 'West'] = 0
     t_up['Coastal', 'Panhandle'] = 0

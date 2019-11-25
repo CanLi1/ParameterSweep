@@ -278,7 +278,7 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
 
         def bound_b_rn(_b, rn, r, t):
             if rn in m.rold:
-                return 0, 0
+                return 0, 0            
             else:
                 return 0, math.floor(m.Qinst_UB[rn, t] / m.Qg_np[rn, r])
 
@@ -426,14 +426,15 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
         b.alphafut = Var(within=Reals, domain=NonNegativeReals)
 
         b.ngo_rn = Var(m.rn_r, t_per_stage[stage], bounds=bound_o_rn, domain=NonNegativeReals)
-        b.ngb_rn = Var(m.rn_r, t_per_stage[stage], bounds=bound_b_rn, domain=NonNegativeReals)
+        # b.ngb_rn = Var(m.rn_r, t_per_stage[stage], bounds=bound_b_rn, domain=NonNegativeReals)
+        b.ngb_rn = Var(m.rn_r, t_per_stage[stage], domain=NonNegativeReals)
         for t in t_per_stage[stage]:
             for rold, r in m.rn_r:
                 if rold in m.rold:
                     b.ngb_rn[rold, r, t].fix(0.0)
 
         b.ngo_th = Var(m.th_r, t_per_stage[stage], bounds=bound_o_th, domain=NonNegativeIntegers)
-        b.ngb_th = Var(m.th_r, t_per_stage[stage], bounds=bound_b_th, domain=NonNegativeIntegers)
+        b.ngb_th = Var(m.th_r, t_per_stage[stage],  domain=NonNegativeIntegers)
         for t in t_per_stage[stage]:
             for told, r in m.th_r:
                 if told in m.told:
@@ -621,7 +622,7 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
             if (th, r) in m.i_r and th in m.th and (m.hours.ord(s_) == m.hours.ord(s) - 1):
                 return _b.P[th, r, t, d, s] - _b.P[th, r, t, d, s_] <= m.Ru_max[th] * m.hs * \
                        m.Qg_np[th, r] * (_b.u[th, r, t, d, s] - _b.su[th, r, t, d, s]) + \
-                       max(m.Pg_min[th], m.Ru_max[th] * m.hs) * m.Qg_np[th, r] * _b.su[th, r, t, d, s]
+                       m.Pg_min[th] * m.Qg_np[th, r] * _b.su[th, r, t, d, s]
             return Constraint.Skip
 
         b.ramp_up = Constraint(m.th, m.r, t_per_stage[stage], m.d, m.hours, m.hours, rule=ramp_up)
@@ -630,7 +631,7 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
             if m.hours.ord(s_) == m.hours.ord(s) - 1:
                 return _b.P[th, r, t, d, s_] - _b.P[th, r, t, d, s] <= m.Rd_max[th] * m.hs * \
                        m.Qg_np[th, r] * (_b.u[th, r, t, d, s] - _b.su[th, r, t, d, s]) + \
-                       max(m.Pg_min[th], m.Rd_max[th] * m.hs) * m.Qg_np[th, r] * _b.sd[th, r, t, d, s]
+                       m.Pg_min[th] * m.Qg_np[th, r] * _b.sd[th, r, t, d, s]
             return Constraint.Skip
 
         b.ramp_down = Constraint(m.th_r, t_per_stage[stage], m.d, m.hours, m.hours, rule=ramp_down)
