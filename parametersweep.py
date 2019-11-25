@@ -72,6 +72,8 @@ start_time = time.time()
 rn_r = list(m.rn_r)
 th_r = list(m.th_r)
 j_r = [(j, r) for j in m.j for r in m.r]
+th_generators = ['coal-st-old1', 'coal-igcc-new', 'coal-igcc-ccs-new', 'ng-ct-old', 'ng-cc-old', 'ng-st-old',
+                 'ng-cc-new', 'ng-cc-ccs-new', 'ng-ct-new', 'coal-first-new']
 
 
 #=================================start Parameter sweep =====================
@@ -90,7 +92,7 @@ ramp_params =  [0.15, 0.25, 0.35]
 hr_params = [5, 10, 15]
 EF_CO2_ratio = [0.5, 0.75, 1.0]
 
-p1, p2, p3, p4, p5 = 0, 0, 0, 0, 0
+p1, p2, p3, p4, p5 = 3, 0, 2, 0, 0
 
 i_r_keys = [('coal-first-new', 'Northeast'), ('coal-first-new', 'West'), ('coal-first-new', 'Coastal'), ('coal-first-new', 'South'), ('coal-first-new', 'Panhandle')]
 for key in i_r_keys:
@@ -119,7 +121,7 @@ scenario_L = [0, 1]
 scenario_cf = [0, 1]
 scenario_P_fuel = ["L", "M", "H"]
 scenario_tx_CO2 = ["L", "M", "H"]
-s1, s2, s3, s4 = 0,0,0,0
+s1, s2, s3, s4 = 0,0,2,0
 for r in m.r:
 	for stage in m.stages:
 	    for t in t_per_stage[stage]:
@@ -140,16 +142,16 @@ for stage in m.stages:
 	for t in t_per_stage[stage]:
 	    for th in th_generators:
 	    	if stage == 1:
-	    		m.P_fuel[th, t, stage] = readData_det.P_fuel_scenarios[th, t, stage, 'O']	
+	    		m.P_fuel[th, t] = readData_det.P_fuel_scenarios[th, t, stage, 'O']	
 	    	else:
-	        	m.P_fuel[th, t, stage] = readData_det.P_fuel_scenarios[th, t, stage, scenario_P_fuel[s3]]	                        
+	        	m.P_fuel[th, t] = readData_det.P_fuel_scenarios[th, t, stage, scenario_P_fuel[s3]]	                        
 
 for stage in m.stages:
-	for t in t_per_stage[stage + 1]:
+	for t in t_per_stage[stage]:
 		if stage == 1:
 			m.tx_CO2[t, stage] = 0
 		else:
-			m.tx_CO2[t, stage] = readData_det.tx_CO2[t, scenario_tx_CO2[s4]]
+			m.tx_CO2[t, stage] = readData_det.tx_CO2[t, stage, scenario_tx_CO2[s4]]
 
 #===================end set scenario ======================================
 
@@ -159,37 +161,38 @@ for stage in m.stages:
 
 
 # # Add equality constraints (solve the full space)
-# for stage in m.stages:
-#     if stage != 1:
-#         # print('stage', stage, 't_prev', t_prev)
-#         for (rn, r) in m.rn_r:
-#             m.Bl[stage].link_equal1.add(expr=(m.Bl[stage].ngo_rn_prev[rn, r] ==
-#                                               m.Bl[stage-1].ngo_rn[rn, r, t_per_stage[stage-1][-1]] ))
-#         for (th, r) in m.th_r:
-#             m.Bl[stage].link_equal2.add(expr=(m.Bl[stage].ngo_th_prev[th, r] ==
-#                                                 m.Bl[stage-1].ngo_th[th, r, t_per_stage[stage-1][-1]]  ))
-#         for (j, r) in j_r:
-#             m.Bl[stage].link_equal3.add(expr=(m.Bl[stage].nso_prev[j, r] ==
-#                                                  m.Bl[stage-1].nso[j, r, t_per_stage[stage-1][-1]]))
-
-#         for l in m.l_new:
-#             m.Bl[stage].link_equal4.add(expr=(m.Bl[stage].nte_prev[l] ==
-#                                                  m.Bl[stage-1].nte[l, t_per_stage[stage-1][-1]]))
-# m.obj = Objective(expr=0, sense=minimize)
-
-# for stage in m.stages:
-#     m.Bl[stage].obj.deactivate()
-#     m.obj.expr += m.Bl[stage].obj.expr
+for stage in m.stages:
+    if stage != 1:
+        # print('stage', stage, 't_prev', t_prev)
+        for (rn, r) in m.rn_r:
+            m.Bl[stage].link_equal1.add(expr=(m.Bl[stage].ngo_rn_prev[rn, r] ==
+                                              m.Bl[stage-1].ngo_rn[rn, r, t_per_stage[stage-1][-1]] ))
+        for (th, r) in m.th_r:
+            m.Bl[stage].link_equal2.add(expr=(m.Bl[stage].ngo_th_prev[th, r] ==
+                                                m.Bl[stage-1].ngo_th[th, r, t_per_stage[stage-1][-1]]  ))
+        for (j, r) in j_r:
+            m.Bl[stage].link_equal3.add(expr=(m.Bl[stage].nso_prev[j, r] ==
+                                                 m.Bl[stage-1].nso[j, r, t_per_stage[stage-1][-1]]))
 
 
-# # # solve relaxed model
-# a = TransformationFactory("core.relax_integrality")
-# a.apply_to(m)
+m.obj = Objective(expr=0, sense=minimize)
 
-# opt = SolverFactory("cplex")
-# opt.options['mipgap'] = 0.01
-# opt.solve(m, tee=True)
+for stage in m.stages:
+    m.Bl[stage].obj.deactivate()
+    m.obj.expr += m.Bl[stage].obj.expr
 
+
+# # solve relaxed model
+a = TransformationFactory("core.relax_integrality")
+a.apply_to(m)
+
+opt = SolverFactory("cplex")
+opt.options['mipgap'] = 0.01
+opt.solve(m, tee=True)
+
+#get the number of thermal generators
+for stage in m.stages:
+	m.Bl[stage].ngb_th.display()
 
 # variable_operating_cost = []
 # fixed_operating_cost =[]

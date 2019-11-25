@@ -217,7 +217,7 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
     m.ED = Param(m.t, default=0, initialize=readData_det.ED)
     m.Rmin = Param(m.t, default=0, initialize=readData_det.Rmin)
     m.hr = Param(m.i_r, default=0, mutable=True, initialize=readData_det.hr)
-    m.P_fuel = Param(m.i, m.t, default=0, initialize=readData_det.P_fuel)
+    m.P_fuel = Param(m.i, m.t, default=0,mutable=True, initialize=readData_det.P_fuel)
     # m.P_fuel = Param(m.i, m.t_stage, default=0, mutable=True)
     m.EF_CO2 = Param(m.i, default=0, mutable=True, initialize=readData_det.EF_CO2)
     m.FOC = Param(m.i, m.t, default=0, initialize=readData_det.FOC)
@@ -365,7 +365,6 @@ def create_model(stages, time_periods, t_per_stage, max_iter):
         m.nso: Number of storage units of type j operational in region r, year t (relaxed to continuous)
         m.nsr: Number of storage units of type j retired in region r, year t (relaxed to continuous)
         '''
-        print(m.i_r, t_per_stage[stage], m.d, m.hours)
         b.P = Var(m.i_r, t_per_stage[stage], m.d, m.hours, within=NonNegativeReals, bounds=bound_P)
         b.cu = Var(m.r, t_per_stage[stage], m.d, m.hours, within=NonNegativeReals)
         b.RES_def = Var(t_per_stage[stage], within=NonNegativeReals)
